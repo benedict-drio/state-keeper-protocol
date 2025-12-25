@@ -102,3 +102,54 @@
 (define-read-only (get-total-increments)
   (ok (var-get total-increments))
 )
+
+(define-read-only (get-total-decrements)
+  (ok (var-get total-decrements))
+)
+
+(define-read-only (get-user-operations (user principal))
+  (ok (default-to 
+    { increments: u0, decrements: u0, last-action-block: u0 }
+    (map-get? user-operations user)
+  ))
+)
+
+(define-read-only (get-contract-info)
+  (ok {
+    counter: (var-get counter),
+    owner: (var-get owner),
+    paused: (var-get paused),
+    total-increments: (var-get total-increments),
+    total-decrements: (var-get total-decrements),
+    contract-owner: CONTRACT-OWNER
+  })
+)
+
+;; =================================
+;; Public Functions
+;; =================================
+
+(define-public (increment)
+  (begin
+    ;; Validations
+    (asserts! (not (is-paused)) ERR-NOT-AUTHORIZED)
+    (asserts! (< (var-get counter) MAX-COUNTER-VALUE) ERR-COUNTER-OVERFLOW)
+    
+    ;; Update counter
+    (var-set counter (+ (var-get counter) u1))
+    (var-set total-increments (+ (var-get total-increments) u1))
+    
+    ;; Update user stats
+    (update-user-stats "increment")
+    
+    ;; Emit event
+    (print {
+      event: "counter-incremented",
+      counter: (var-get counter),
+      user: tx-sender,
+      block: stacks-block-height
+    })
+    
+    (ok (var-get counter))
+  )
+)
