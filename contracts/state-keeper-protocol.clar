@@ -51,3 +51,54 @@
 (define-private (is-contract-owner)
   (is-eq tx-sender (var-get owner))
 )
+
+(define-private (is-paused)
+  (var-get paused)
+)
+
+(define-private (update-user-stats (operation (string-ascii 10)))
+  (let
+    (
+      (current-stats (default-to 
+        { increments: u0, decrements: u0, last-action-block: u0 }
+        (map-get? user-operations tx-sender)
+      ))
+    )
+    (if (is-eq operation "increment")
+      (map-set user-operations tx-sender {
+        increments: (+ (get increments current-stats) u1),
+        decrements: (get decrements current-stats),
+        last-action-block: stacks-block-height
+      })
+      (map-set user-operations tx-sender {
+        increments: (get increments current-stats),
+        decrements: (+ (get decrements current-stats) u1),
+        last-action-block: stacks-block-height
+      })
+    )
+  )
+)
+
+;; =================================
+;; Read-Only Functions
+;; =================================
+
+(define-read-only (get-counter)
+  (ok (var-get counter))
+)
+
+(define-read-only (get-owner)
+  (ok (var-get owner))
+)
+
+(define-read-only (get-contract-owner)
+  (ok CONTRACT-OWNER)
+)
+
+(define-read-only (is-paused-status)
+  (ok (var-get paused))
+)
+
+(define-read-only (get-total-increments)
+  (ok (var-get total-increments))
+)
