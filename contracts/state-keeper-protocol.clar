@@ -202,3 +202,47 @@
     (ok (var-get counter))
   )
 )
+
+(define-public (decrement-by (amount uint))
+  (begin
+    ;; Validations
+    (asserts! (not (is-paused)) ERR-NOT-AUTHORIZED)
+    (asserts! (> amount u0) ERR-INVALID-VALUE)
+    (asserts! (>= (var-get counter) amount) ERR-COUNTER-UNDERFLOW)
+    
+    ;; Update counter
+    (var-set counter (- (var-get counter) amount))
+    (var-set total-decrements (+ (var-get total-decrements) amount))
+    
+    ;; Emit event
+    (print {
+      event: "counter-decremented-by",
+      amount: amount,
+      counter: (var-get counter),
+      user: tx-sender,
+      block: stacks-block-height
+    })
+    
+    (ok (var-get counter))
+  )
+)
+
+;; =================================
+;; Owner-Only Functions
+;; =================================
+
+(define-public (reset)
+  (begin
+    (asserts! (is-contract-owner) ERR-NOT-AUTHORIZED)
+    
+    (var-set counter u0)
+    
+    (print {
+      event: "counter-reset",
+      user: tx-sender,
+      block: stacks-block-height
+    })
+    
+    (ok (var-get counter))
+  )
+)
